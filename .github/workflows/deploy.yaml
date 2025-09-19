@@ -31,7 +31,7 @@ jobs:
 
       # Step 5: Set up Kind (local Kubernetes cluster)
       - name: Set up Kind
-        uses: engineerd/setup-kind@v0.9.0
+        uses: engineerd/setup-kind@v0.8.0
         with:
           version: v0.20.0
 
