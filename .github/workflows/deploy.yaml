@@ -54,6 +54,8 @@ jobs:
       # Step 9: Create TLS secret
       - name: Create TLS secret
         run: |
+          echo "${{ secrets.WISECOW_TLS_CRT }}" > wisecow.crt
+          echo "${{ secrets.WISECOW_TLS_KEY }}" > wisecow.key
           kubectl create secret tls wisecow-tls \
             --cert=tls/wisecow.crt \
             --key=tls/wisecow.key \
