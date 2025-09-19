@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
+      # Step 1: Checkout repository
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker Buildx (for building images)
+      # Step 2: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -29,7 +29,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t raima01/wisecow:latest .
 
-      # Step 5: Install Kind
+      # Step 5: Install Kind (local Kubernetes cluster)
       - name: Install Kind
         run: |
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
@@ -44,28 +44,36 @@ jobs:
       - name: Load Docker image into Kind
         run: kind load docker-image raima01/wisecow:latest --name wisecow
 
-      # Step 8: Set up kubeconfig for Kind
+      # Step 8: Configure kubeconfig for Kind
       - name: Set kubeconfig context
         run: |
           mkdir -p $HOME/.kube
           kind get kubeconfig --name wisecow > $HOME/.kube/config
           kubectl config use-context kind-wisecow
 
-      # Step 9: Create TLS secret
+      # Step 9: Create TLS secret from GitHub Secrets
       - name: Create TLS secret
         run: |
-          echo "${{ secrets.WISECOW_TLS_CRT }}" > wisecow.crt
-          echo "${{ secrets.WISECOW_TLS_KEY }}" > wisecow.key
+          echo "${{ secrets.WISECOW_TLS_CRT }}" | base64 -d > wisecow.crt
+          echo "${{ secrets.WISECOW_TLS_KEY }}" | base64 -d > wisecow.key
           kubectl create secret tls wisecow-tls \
             --cert=wisecow.crt \
             --key=wisecow.key --dry-run=client -o yaml | kubectl apply -f -
 
-      # Step 10: Deploy Wisecow application
-      - name: Apply Kubernetes manifests
+      # Step 10: Apply Kubernetes manifests
+      - name: Deploy Wisecow app
         run: |
           kubectl apply -f k8s/wisecow-deployment.yaml
           kubectl apply -f k8s/wisecow-service.yaml
 
-      # Step 11: Wait for deployment rollout
-      - name: Wait for Wisecow deployment
+      # Step 11: Wait for deployment to be ready
+      - name: Wait for deployment rollout
         run: kubectl rollout status deployment/wisecow-deployment
+
+      # Step 12: Verify pods
+      - name: Get pods status
+        run: kubectl get pods -o wide
+
+      # Step 13: Verify services
+      - name: Get services
+        run: kubectl get svc
