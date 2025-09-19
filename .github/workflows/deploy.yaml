@@ -29,11 +29,12 @@ jobs:
       - name: Build Docker image
         run: docker build -t raima01/wisecow:latest .
 
-      # Step 5: Set up Kind (local Kubernetes cluster)
-      - name: Set up Kind
-        uses: engineerd/setup-kind@v0.8.0
-        with:
-          version: v0.20.0
+      # Step 5: Install Kind
+      - name: Install Kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
 
       # Step 6: Create Kind cluster
       - name: Create Kind cluster
