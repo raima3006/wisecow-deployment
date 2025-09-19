@@ -1,4 +1,4 @@
-name: Deploy Wisecow with Kind and TLS
+name: Deploy Wisecow App to Kind
 
 on:
   push:
@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repo
-      - name: Checkout repository
+      # Step 1: Checkout the repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker
+      # Step 2: Set up Docker Buildx (for building images)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -25,44 +25,45 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 4: Build and push Docker image
-      - name: Build and Push Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/wisecow:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/wisecow:latest
+      # Step 4: Build Docker image
+      - name: Build Docker image
+        run: docker build -t raima01/wisecow:latest .
 
-      # Step 5: Set up Kind (local Kubernetes cluster in GitHub Actions)
+      # Step 5: Set up Kind (local Kubernetes cluster)
       - name: Set up Kind
-        uses: engineerd/setup-kind@v0.6.0
+        uses: engineerd/setup-kind@v0.9.0
         with:
           version: v0.20.0
 
-      # Step 6: Load Docker image into Kind
+      # Step 6: Create Kind cluster
+      - name: Create Kind cluster
+        run: kind create cluster --name wisecow
+
+      # Step 7: Load Docker image into Kind cluster
       - name: Load Docker image into Kind
-        run: kind load docker-image ${{ secrets.DOCKER_USERNAME }}/wisecow:latest
+        run: kind load docker-image raima01/wisecow:latest --name wisecow
 
-      # Step 7: Apply Kubernetes manifests
-      - name: Apply Kubernetes manifests
+      # Step 8: Set up kubeconfig for Kind
+      - name: Set kubeconfig context
         run: |
-          kubectl apply -f k8s/wisecow-deployment.yaml --validate=false
-          kubectl apply -f k8s/wisecow-service.yaml --validate=false
+          mkdir -p $HOME/.kube
+          kind get kubeconfig --name wisecow > $HOME/.kube/config
+          kubectl config use-context kind-wisecow
 
-      # Step 8: Create TLS secret
+      # Step 9: Create TLS secret
       - name: Create TLS secret
         run: |
           kubectl create secret tls wisecow-tls \
-            --cert=k8s/tls/wisecow.crt \
-            --key=k8s/tls/wisecow.key \
+            --cert=tls/wisecow.crt \
+            --key=tls/wisecow.key \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      # Step 9: Restart deployment to pick up TLS secret
-      - name: Restart Wisecow deployment
-        run: kubectl rollout restart deployment wisecow-deployment
+      # Step 10: Deploy Wisecow application
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/wisecow-deployment.yaml
+          kubectl apply -f k8s/wisecow-service.yaml
 
-      # Step 10: Wait for pod to be ready
-      - name: Wait for pod readiness
-        run: kubectl wait --for=condition=ready pod -l app=wisecow --timeout=120s
-
-      # Step 11: Verify pod logs
-      - name: Verify logs
-        run: kubectl logs -l app=wisecow
+      # Step 11: Wait for deployment rollout
+      - name: Wait for Wisecow deployment
+        run: kubectl rollout status deployment/wisecow-deployment
