@@ -51,14 +51,15 @@ jobs:
           kind get kubeconfig --name wisecow > $HOME/.kube/config
           kubectl config use-context kind-wisecow
 
-      # Step 9: Create TLS secret from GitHub Secrets
+      # Step 9: Create TLS secret
       - name: Create TLS secret
         run: |
-          echo "${{ secrets.WISECOW_TLS_CRT }}" | base64 -d > wisecow.crt
-          echo "${{ secrets.WISECOW_TLS_KEY }}" | base64 -d > wisecow.key
+          echo "${{ secrets.WISECOW_TLS_CRT }}" | base64 --decode > wisecow.crt
+          echo "${{ secrets.WISECOW_TLS_KEY }}" | base64 --decode > wisecow.key
           kubectl create secret tls wisecow-tls \
             --cert=wisecow.crt \
             --key=wisecow.key --dry-run=client -o yaml | kubectl apply -f -
+
 
       # Step 10: Apply Kubernetes manifests
       - name: Deploy Wisecow app
