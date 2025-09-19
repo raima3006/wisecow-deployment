@@ -21,7 +21,7 @@ jobs:
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
 
-      # Step 3: Check kubectl version (optional but helpful)
+      # Step 3: Check kubectl version
       - name: Check kubectl version
         run: kubectl version --client
 
@@ -31,10 +31,10 @@ jobs:
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > $HOME/.kube/config
 
-      # Step 5: Set minikube context explicitly
+      # Step 5: Use minikube context
       - name: Use minikube context
         run: kubectl config use-context minikube
 
       # Step 6: Apply Kubernetes manifests
       - name: Apply Kubernetes manifests
-        run: kubectl apply -f
+        run: kubectl apply -f k8s/
