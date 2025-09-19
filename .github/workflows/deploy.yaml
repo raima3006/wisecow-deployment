@@ -44,7 +44,7 @@ jobs:
 
       # Step 7: Pull latest image from Docker Hub
       - name: Pull Docker image
-        run: docker pull raima3006/wisecow:latest
+        run: docker pull raima01/wisecow:latest
 
       # Step 8: Apply Kubernetes manifests
       - name: Apply Kubernetes manifests
