@@ -14,7 +14,19 @@ spec:
     spec:
       containers:
         - name: wisecow
-          image: wisecow:latest
-          imagePullPolicy: Never
+          image: raima01/wisecow:latest
           ports:
             - containerPort: 4499
+          volumeMounts:
+            - name: tls-secret
+              mountPath: /app/tls
+              readOnly: true
+          args:
+            - "--tls-cert"
+            - "/app/tls/wisecow.crt"
+            - "--tls-key"
+            - "/app/tls/wisecow.key"
+      volumes:
+        - name: tls-secret
+          secret:
+            secretName: wisecow-tls
